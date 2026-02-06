@@ -1,0 +1,19 @@
+{
+  "name": "linden",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@effect/language-service": "^0.73.0",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@effect/cli": "^0.73.2",
+    "@effect/platform": "^0.94.3",
+    "@effect/platform-bun": "^0.87.1",
+    "effect": "^3.19.16"
+  }
+}

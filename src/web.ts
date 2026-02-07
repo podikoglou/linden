@@ -1,8 +1,5 @@
 import { HttpClient } from "@effect/platform";
-import type {
-	RequestError,
-	ResponseError,
-} from "@effect/platform/HttpClientError";
+import type { HttpClientError } from "@effect/platform/HttpClientError";
 import * as cheerio from "cheerio";
 import { Context, Effect, Layer } from "effect";
 
@@ -15,8 +12,8 @@ export class Web extends Context.Tag("@linden/web")<
 	Web,
 	{
 		readonly fetchPage: (
-		) => Effect.Effect<FetchedPage, RequestError | ResponseError>;
 			url: URL,
+		) => Effect.Effect<FetchedPage, HttpClientError>;
 
 		readonly extractLinks: (page: FetchedPage) => Effect.Effect<URL[]>;
 	}

@@ -23,67 +23,82 @@ const depth = Options.integer("depth").pipe(
 	Options.withDefault(3),
 );
 
+const concurrency = Options.integer("concurrency").pipe(
+	Options.withAlias("c"),
+	Options.withDefault(4),
+);
+
 class AlreadyVisitedError extends Data.TaggedClass("AlreadyVisitedError")<{
 	url: string;
 }> {}
 
-const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
-	return Effect.gen(function* () {
-		const web = yield* Web;
+const linden = Command.make(
+	"linden",
+	{ url, depth, concurrency },
+	({ url, depth, concurrency }) => {
+		return Effect.gen(function* () {
+			const web = yield* Web;
 
-		const queue = yield* Queue.unbounded<{ url: URL; depth: number }>();
+			const queue = yield* Queue.unbounded<{ url: URL; depth: number }>();
 
-		const visited: MutableHashSet.MutableHashSet<string> =
-			MutableHashSet.make();
+			const visited: MutableHashSet.MutableHashSet<string> =
+				MutableHashSet.make();
 
-		// initial seeding of the queue
-		yield* web.fetchPage(new URL(url)).pipe(
-			Effect.flatMap(web.extractURLs),
-			Effect.andThen((urls) => urls.map((url) => ({ url, depth: 0 }))),
-			Effect.andThen((items) => queue.offerAll(items)),
-		);
+			// initial seeding of the queue
+			yield* web.fetchPage(new URL(url)).pipe(
+				Effect.flatMap(web.extractURLs),
+				Effect.andThen((urls) => urls.map((url) => ({ url, depth: 0 }))),
+				Effect.andThen((items) => queue.offerAll(items)),
+			);
 
-		const pipeline = Effect.fn("pipeline")(function* () {
-			const item = yield* Queue.take(queue);
+			const pipeline = Effect.fn("pipeline")(function* () {
+				const item = yield* Queue.take(queue);
 
-			if (item.depth >= depth) {
-				return yield* Effect.succeedNone;
-			}
+				if (item.depth >= depth) {
+					return yield* Effect.succeedNone;
+				}
 
-			const normalizedUrl = normalizeUrl(item.url.href);
+				const normalizedUrl = normalizeUrl(item.url.href);
 
-			if (MutableHashSet.has(visited, normalizedUrl)) {
-				return yield* Effect.fail(
-					new AlreadyVisitedError({ url: normalizedUrl }),
-				);
-			}
+				if (MutableHashSet.has(visited, normalizedUrl)) {
+					return yield* Effect.fail(
+						new AlreadyVisitedError({ url: normalizedUrl }),
+					);
+				}
 
-			MutableHashSet.add(visited, normalizedUrl);
+				MutableHashSet.add(visited, normalizedUrl);
 
-			yield* web.validateURL(item.url);
+				yield* web.validateURL(item.url);
 
-			const fetchedPage = yield* web.fetchPage(item.url);
-			const urls = yield* web.extractURLs(fetchedPage);
-			const items = urls.map((url) => ({ url, depth: item.depth + 1 }));
+				const fetchedPage = yield* web.fetchPage(item.url);
+				const urls = yield* web.extractURLs(fetchedPage);
+				const items = urls.map((url) => ({ url, depth: item.depth + 1 }));
 
-			yield* queue.offerAll(items);
+				yield* queue.offerAll(items);
+			});
+
+			const shouldContinue = queue.isEmpty.pipe(
+				Effect.andThen((empty) => !empty),
+			);
+
+			const pipelineLoop = Effect.fn("pipelineLoop")(function* () {
+				while (yield* shouldContinue) {
+					yield* pipeline().pipe(
+						Effect.catchAll((err) => Effect.logError(err)),
+					);
+				}
+			});
+
+			yield* Effect.forEach(
+				Array.from({ length: concurrency }),
+				(_, __) => pipelineLoop(),
+				{
+					concurrency,
+				},
+			);
 		});
-
-		const shouldContinue = queue.isEmpty.pipe(
-			Effect.andThen((empty) => !empty),
-		);
-
-		const pipelineLoop = Effect.fn("pipelineLoop")(function* () {
-			while (yield* shouldContinue) {
-				yield* pipeline().pipe(Effect.catchAll((err) => Effect.logError(err)));
-			}
-		});
-
-		yield* Effect.forEach([1, 2, 3, 4], (_, __) => pipelineLoop(), {
-			concurrency: 4,
-		});
-	});
-});
+	},
+);
 
 const cli = Command.run(linden, { name: "linden", version: "0.0.1" });
 

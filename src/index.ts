@@ -25,6 +25,37 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 			Effect.andThen((urls) => urls.map((url) => ({ url, depth: 0 }))),
 			Effect.andThen((items) => queue.offerAll(items)),
 		);
+
+		const pipeline = Effect.fn("pipeline")(function* () {
+			return yield* Queue.take(queue).pipe(
+				Effect.flatMap(({ url, depth }) =>
+					web
+						.fetchPage(url)
+						.pipe(Effect.map((fetchedPage) => ({ fetchedPage, depth }))),
+				),
+				Effect.flatMap(({ fetchedPage, depth }) =>
+					web.extractURLs(fetchedPage).pipe(
+						Effect.map((urls) => ({
+							urls,
+							depth,
+						})),
+					),
+				),
+				Effect.andThen(({ urls, depth }) =>
+					urls.map((url) => ({ url, depth: depth + 1 })),
+				),
+				Effect.andThen((items) => queue.offerAll(items)),
+			);
+		});
+
+		const shouldContinue = queue.isEmpty.pipe(
+			Effect.andThen((empty) => !empty),
+		);
+
+		while (yield* shouldContinue) {
+			yield* Effect.log("Running pipeline");
+			yield* pipeline();
+		}
 	});
 });
 

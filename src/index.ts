@@ -100,7 +100,7 @@ const linden = Command.make(
 	},
 );
 
-const cli = Command.run(linden, { name: "linden", version: "0.0.1" });
+const cli = Command.run(linden, { name: "linden", version: "1.0.0" });
 
 const LogLevelLive = Config.logLevel("LOG_LEVEL").pipe(
 	Effect.orElse(() => Effect.succeed(LogLevel.Info)),

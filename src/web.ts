@@ -3,6 +3,7 @@ import type {
 	RequestError,
 	ResponseError,
 } from "@effect/platform/HttpClientError";
+import * as cheerio from "cheerio";
 import { Context, Effect, Layer } from "effect";
 
 export class Web extends Context.Tag("@linden/web")<
@@ -11,6 +12,8 @@ export class Web extends Context.Tag("@linden/web")<
 		readonly fetchPage: (
 			url: string,
 		) => Effect.Effect<string, RequestError | ResponseError>;
+
+		readonly extractLinks: (body: string) => Effect.Effect<string[]>;
 	}
 >() {
 	static readonly layer = Layer.effect(
@@ -25,8 +28,24 @@ export class Web extends Context.Tag("@linden/web")<
 				return yield* Effect.succeed(text);
 			});
 
+			const extractLinks = Effect.fn("Web.extractLinks")(function* (
+				body: string,
+			) {
+				const $ = cheerio.load(body);
+
+				const anchors = $("a");
+
+				const links = anchors
+					.toArray()
+					.map((anchor) => anchor.attribs.href)
+					.filter((href) => href !== undefined);
+
+				return yield* Effect.succeed(links);
+			});
+
 			return Web.of({
 				fetchPage,
+				extractLinks,
 			});
 		}),
 	);

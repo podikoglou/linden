@@ -16,16 +16,18 @@ import { Web } from "./web";
 
 const url = Args.text({
 	name: "url",
-});
+}).pipe(Args.withDescription("URL to start crawling from"));
 
 const depth = Options.integer("depth").pipe(
 	Options.withAlias("d"),
 	Options.withDefault(3),
+	Options.withDescription("The maximum depth to crawl"),
 );
 
 const concurrency = Options.integer("concurrency").pipe(
 	Options.withAlias("c"),
 	Options.withDefault(4),
+	Options.withDescription("The maximum number of concurrent requests"),
 );
 
 class AlreadyVisitedError extends Data.TaggedClass("AlreadyVisitedError")<{

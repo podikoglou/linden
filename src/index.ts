@@ -25,8 +25,6 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 			Effect.andThen((urls) => urls.map((url) => ({ url, depth: 0 }))),
 			Effect.andThen((items) => queue.offerAll(items)),
 		);
-
-		return yield* Effect.succeedNone;
 	});
 });
 

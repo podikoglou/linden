@@ -45,7 +45,7 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 					urls.map((url) => ({ url, depth: depth + 1 })),
 				),
 				Effect.andThen((items) => queue.offerAll(items)),
-				Effect.catchTag("RequestError", (_) => Effect.succeedNone),
+				Effect.catchTag("RequestError", (err) => Effect.logError(err)),
 			);
 		});
 

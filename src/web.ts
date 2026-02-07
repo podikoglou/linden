@@ -15,7 +15,7 @@ export class Web extends Context.Tag("@linden/web")<
 			url: URL,
 		) => Effect.Effect<FetchedPage, HttpClientError>;
 
-		readonly extractLinks: (page: FetchedPage) => Effect.Effect<URL[]>;
+		readonly extractURLs: (page: FetchedPage) => Effect.Effect<URL[]>;
 	}
 >() {
 	static readonly layer = Layer.effect(
@@ -30,7 +30,7 @@ export class Web extends Context.Tag("@linden/web")<
 				return yield* Effect.succeed({ url, content: text });
 			});
 
-			const extractLinks = Effect.fn("Web.extractLinks")(function* ({
+			const extractURLs = Effect.fn("Web.extractURLs")(function* ({
 				url,
 				content,
 			}: FetchedPage) {
@@ -49,7 +49,7 @@ export class Web extends Context.Tag("@linden/web")<
 
 			return Web.of({
 				fetchPage,
-				extractLinks,
+				extractURLs,
 			});
 		}),
 	);

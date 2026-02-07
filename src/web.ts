@@ -8,15 +8,15 @@ import { Context, Effect, Layer } from "effect";
 
 export interface FetchedPage {
 	content: string;
-	url: string;
+	url: URL;
 }
 
 export class Web extends Context.Tag("@linden/web")<
 	Web,
 	{
 		readonly fetchPage: (
-			url: string,
 		) => Effect.Effect<FetchedPage, RequestError | ResponseError>;
+			url: URL,
 
 		readonly extractLinks: (page: FetchedPage) => Effect.Effect<URL[]>;
 	}
@@ -26,7 +26,7 @@ export class Web extends Context.Tag("@linden/web")<
 		Effect.gen(function* () {
 			const http = yield* HttpClient.HttpClient;
 
-			const fetchPage = Effect.fn("Web.fetchPage")(function* (url: string) {
+			const fetchPage = Effect.fn("Web.fetchPage")(function* (url: URL) {
 				const response = yield* http.get(url);
 				const text = yield* response.text;
 

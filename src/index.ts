@@ -18,7 +18,7 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 		const web = yield* Web;
 
 		const links = yield* web
-			.fetchPage(url)
+			.fetchPage(new URL(url))
 			.pipe(Effect.flatMap(web.extractLinks));
 
 		yield* Effect.log(links);

@@ -16,7 +16,8 @@
 		"@effect/platform": "^0.94.3",
 		"@effect/platform-bun": "^0.87.1",
 		"cheerio": "^1.2.0",
-		"effect": "^3.19.16"
+		"effect": "^3.19.16",
+		"normalize-url": "^8.1.1"
 	},
 	"scripts": {
 		"format": "biome format --write",

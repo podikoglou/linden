@@ -1,7 +1,17 @@
 import { Args, Command, Options } from "@effect/cli";
 import { FetchHttpClient } from "@effect/platform";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
-import { Config, Effect, Layer, Logger, LogLevel, pipe, Queue } from "effect";
+import {
+	Config,
+	Data,
+	Effect,
+	Layer,
+	Logger,
+	LogLevel,
+	MutableHashSet,
+	Queue,
+} from "effect";
+import normalizeUrl from "normalize-url";
 import { Web } from "./web";
 
 const url = Args.text({
@@ -13,11 +23,18 @@ const depth = Options.integer("depth").pipe(
 	Options.withDefault(3),
 );
 
+class AlreadyVisitedError extends Data.TaggedClass("AlreadyVisitedError")<{
+	url: string;
+}> {}
+
 const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 	return Effect.gen(function* () {
 		const web = yield* Web;
 
 		const queue = yield* Queue.unbounded<{ url: URL; depth: number }>();
+
+		const visited: MutableHashSet.MutableHashSet<string> =
+			MutableHashSet.make();
 
 		// initial seeding of the queue
 		yield* web.fetchPage(new URL(url)).pipe(
@@ -28,6 +45,16 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 
 		const pipeline = Effect.fn("pipeline")(function* () {
 			const item = yield* Queue.take(queue);
+
+			const normalizedUrl = normalizeUrl(item.url.href);
+
+			if (MutableHashSet.has(visited, normalizedUrl)) {
+				return yield* Effect.fail(
+					new AlreadyVisitedError({ url: normalizedUrl }),
+				);
+			}
+
+			MutableHashSet.add(visited, normalizedUrl);
 
 			yield* web.validateURL(item.url);
 

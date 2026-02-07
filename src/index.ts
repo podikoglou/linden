@@ -1,7 +1,7 @@
 import { Args, Command, Options } from "@effect/cli";
 import { FetchHttpClient } from "@effect/platform";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
-import { Config, Effect, Layer, Logger, LogLevel, Queue } from "effect";
+import { Config, Effect, Layer, Logger, LogLevel, pipe, Queue } from "effect";
 import { Web } from "./web";
 
 const url = Args.text({
@@ -27,26 +27,15 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 		);
 
 		const pipeline = Effect.fn("pipeline")(function* () {
-			return yield* Queue.take(queue).pipe(
-				Effect.flatMap(({ url, depth }) =>
-					web
-						.fetchPage(url)
-						.pipe(Effect.map((fetchedPage) => ({ fetchedPage, depth }))),
-				),
-				Effect.flatMap(({ fetchedPage, depth }) =>
-					web.extractURLs(fetchedPage).pipe(
-						Effect.map((urls) => ({
-							urls,
-							depth,
-						})),
-					),
-				),
-				Effect.andThen(({ urls, depth }) =>
-					urls.map((url) => ({ url, depth: depth + 1 })),
-				),
-				Effect.andThen((items) => queue.offerAll(items)),
-				Effect.catchTag("RequestError", (err) => Effect.logError(err)),
-			);
+			const item = yield* Queue.take(queue);
+
+			yield* web.validateURL(item.url);
+
+			const fetchedPage = yield* web.fetchPage(item.url);
+			const urls = yield* web.extractURLs(fetchedPage);
+			const items = urls.map((url) => ({ url, depth: item.depth + 1 }));
+
+			yield* queue.offerAll(items);
 		});
 
 		const shouldContinue = queue.isEmpty.pipe(
@@ -54,8 +43,9 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 		);
 
 		while (yield* shouldContinue) {
-			yield* Effect.log("Running pipeline");
-			yield* pipeline();
+			yield* pipeline().pipe(
+				Effect.catchAll((err) => Effect.logError(err._tag)),
+			);
 		}
 	});
 });

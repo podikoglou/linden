@@ -37,6 +37,7 @@ const AppLayer = Web.layer.pipe(
 
 cli(process.argv).pipe(
 	Effect.provide(AppLayer),
-	Effect.catchAll(Effect.log),
+	Effect.catchAll(Effect.logError),
+
 	BunRuntime.runMain,
 );

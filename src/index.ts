@@ -16,11 +16,11 @@ const depth = Options.integer("depth").pipe(
 const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 	return Effect.gen(function* () {
 		const web = yield* Web;
-		const resp = yield* web.fetchPage(url);
 
-		yield* Effect.log(resp);
+		const links = yield* web
+			.fetchPage(url)
+			.pipe(Effect.flatMap(web.extractLinks));
 
-		const links = yield* web.extractLinks(resp, url);
 		yield* Effect.log(links);
 
 		return yield* Effect.succeedNone;

@@ -5,8 +5,8 @@ import type {
 } from "@effect/platform/HttpClientError";
 import { Context, Effect, Layer } from "effect";
 
-export class Http extends Context.Tag("@linden/http")<
-	Http,
+export class Web extends Context.Tag("@linden/web")<
+	Web,
 	{
 		readonly fetchPage: (
 			url: string,
@@ -14,18 +14,18 @@ export class Http extends Context.Tag("@linden/http")<
 	}
 >() {
 	static readonly layer = Layer.effect(
-		Http,
+		Web,
 		Effect.gen(function* () {
 			const http = yield* HttpClient.HttpClient;
 
-			const fetchPage = Effect.fn("Http.fetchPage")(function* (url: string) {
+			const fetchPage = Effect.fn("Web.fetchPage")(function* (url: string) {
 				const response = yield* http.get(url);
 				const text = yield* response.text;
 
 				return yield* Effect.succeed(text);
 			});
 
-			return Http.of({
+			return Web.of({
 				fetchPage,
 			});
 		}),

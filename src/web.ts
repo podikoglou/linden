@@ -1,12 +1,16 @@
 import { HttpClient } from "@effect/platform";
 import type { HttpClientError } from "@effect/platform/HttpClientError";
 import * as cheerio from "cheerio";
-import { Context, Effect, Layer } from "effect";
+import { Context, Data, Effect, Layer } from "effect";
 
 export interface FetchedPage {
 	content: string;
 	url: URL;
 }
+
+class ValidationError extends Data.TaggedError("ValidationError")<{
+	readonly url: URL;
+}> {}
 
 export class Web extends Context.Tag("@linden/web")<
 	Web,
@@ -16,6 +20,8 @@ export class Web extends Context.Tag("@linden/web")<
 		) => Effect.Effect<FetchedPage, HttpClientError>;
 
 		readonly extractURLs: (page: FetchedPage) => Effect.Effect<URL[]>;
+
+		readonly validateURL: (url: URL) => Effect.Effect<void, ValidationError>;
 	}
 >() {
 	static readonly layer = Layer.effect(
@@ -49,9 +55,16 @@ export class Web extends Context.Tag("@linden/web")<
 				return yield* Effect.succeed(links);
 			});
 
+			const validateURL = Effect.fn("Web.validateURL")(function* (url: URL) {
+				return yield* url.protocol === "http:" || url.protocol === "https:"
+					? Effect.void
+					: Effect.fail(new ValidationError({ url }));
+			});
+
 			return Web.of({
 				fetchPage,
 				extractURLs,
+				validateURL,
 			});
 		}),
 	);

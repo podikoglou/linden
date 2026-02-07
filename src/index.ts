@@ -1,7 +1,7 @@
 import { Args, Command, Options } from "@effect/cli";
 import { FetchHttpClient } from "@effect/platform";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
-import { Effect, Layer, Queue } from "effect";
+import { Config, Effect, Layer, Logger, LogLevel, Queue } from "effect";
 import { Web } from "./web";
 
 const url = Args.text({
@@ -62,9 +62,16 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 
 const cli = Command.run(linden, { name: "linden", version: "0.0.1" });
 
+const LogLevelLive = Config.logLevel("LOG_LEVEL").pipe(
+	Effect.orElse(() => Effect.succeed(LogLevel.Info)),
+	Effect.andThen((level) => Logger.minimumLogLevel(level)),
+	Layer.unwrapEffect,
+);
+
 const AppLayer = Web.layer.pipe(
 	Layer.provideMerge(BunContext.layer),
 	Layer.provideMerge(FetchHttpClient.layer),
+	Layer.provideMerge(LogLevelLive),
 );
 
 cli(process.argv).pipe(

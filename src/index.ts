@@ -104,16 +104,9 @@ const linden = Command.make(
 
 const cli = Command.run(linden, { name: "linden", version: "1.0.0" });
 
-const LogLevelLive = Config.logLevel("LOG_LEVEL").pipe(
-	Effect.orElse(() => Effect.succeed(LogLevel.Info)),
-	Effect.andThen((level) => Logger.minimumLogLevel(level)),
-	Layer.unwrapEffect,
-);
-
 const AppLayer = Web.layer.pipe(
 	Layer.provideMerge(BunContext.layer),
 	Layer.provideMerge(FetchHttpClient.layer),
-	Layer.provideMerge(LogLevelLive),
 );
 
 cli(process.argv).pipe(

@@ -71,9 +71,7 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 
 		const pipelineLoop = Effect.fn("pipelineLoop")(function* () {
 			while (yield* shouldContinue) {
-				yield* pipeline().pipe(
-					Effect.catchAll((err) => Effect.logError(err._tag)),
-				);
+				yield* pipeline().pipe(Effect.catchAll((err) => Effect.logError(err)));
 			}
 		});
 

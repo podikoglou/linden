@@ -100,7 +100,7 @@ const linden = Command.make(
 			);
 		});
 	},
-);
+).pipe(Command.withDescription("Crawls the internet and collects URLs"));
 
 const cli = Command.run(linden, { name: "linden", version: "1.0.0" });
 

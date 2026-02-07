@@ -46,6 +46,10 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 		const pipeline = Effect.fn("pipeline")(function* () {
 			const item = yield* Queue.take(queue);
 
+			if (item.depth >= depth) {
+				return yield* Effect.succeedNone;
+			}
+
 			const normalizedUrl = normalizeUrl(item.url.href);
 
 			if (MutableHashSet.has(visited, normalizedUrl)) {

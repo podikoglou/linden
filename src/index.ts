@@ -42,11 +42,17 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 			Effect.andThen((empty) => !empty),
 		);
 
-		while (yield* shouldContinue) {
-			yield* pipeline().pipe(
-				Effect.catchAll((err) => Effect.logError(err._tag)),
-			);
-		}
+		const pipelineLoop = Effect.fn("pipelineLoop")(function* () {
+			while (yield* shouldContinue) {
+				yield* pipeline().pipe(
+					Effect.catchAll((err) => Effect.logError(err._tag)),
+				);
+			}
+		});
+
+		yield* Effect.forEach([1, 2, 3, 4], (_, __) => pipelineLoop(), {
+			concurrency: 4,
+		});
 	});
 });
 

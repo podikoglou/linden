@@ -6,14 +6,19 @@ import type {
 import * as cheerio from "cheerio";
 import { Context, Effect, Layer } from "effect";
 
+export interface FetchedPage {
+	content: string;
+	url: string;
+}
+
 export class Web extends Context.Tag("@linden/web")<
 	Web,
 	{
 		readonly fetchPage: (
 			url: string,
-		) => Effect.Effect<string, RequestError | ResponseError>;
+		) => Effect.Effect<FetchedPage, RequestError | ResponseError>;
 
-		readonly extractLinks: (body: string, url: string) => Effect.Effect<URL[]>;
+		readonly extractLinks: (page: FetchedPage) => Effect.Effect<URL[]>;
 	}
 >() {
 	static readonly layer = Layer.effect(
@@ -25,14 +30,14 @@ export class Web extends Context.Tag("@linden/web")<
 				const response = yield* http.get(url);
 				const text = yield* response.text;
 
-				return yield* Effect.succeed(text);
+				return yield* Effect.succeed({ url, content: text });
 			});
 
-			const extractLinks = Effect.fn("Web.extractLinks")(function* (
-				body: string,
-				url: string,
-			) {
-				const $ = cheerio.load(body);
+			const extractLinks = Effect.fn("Web.extractLinks")(function* ({
+				url,
+				content,
+			}: FetchedPage) {
+				const $ = cheerio.load(content);
 
 				const anchors = $("a");
 

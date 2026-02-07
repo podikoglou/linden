@@ -13,7 +13,7 @@ export class Web extends Context.Tag("@linden/web")<
 			url: string,
 		) => Effect.Effect<string, RequestError | ResponseError>;
 
-		readonly extractLinks: (body: string) => Effect.Effect<string[]>;
+		readonly extractLinks: (body: string, url: string) => Effect.Effect<URL[]>;
 	}
 >() {
 	static readonly layer = Layer.effect(
@@ -30,6 +30,7 @@ export class Web extends Context.Tag("@linden/web")<
 
 			const extractLinks = Effect.fn("Web.extractLinks")(function* (
 				body: string,
+				url: string,
 			) {
 				const $ = cheerio.load(body);
 
@@ -38,7 +39,8 @@ export class Web extends Context.Tag("@linden/web")<
 				const links = anchors
 					.toArray()
 					.map((anchor) => anchor.attribs.href)
-					.filter((href) => href !== undefined);
+					.filter((href) => href !== undefined)
+					.map((href) => new URL(href, url));
 
 				return yield* Effect.succeed(links);
 			});

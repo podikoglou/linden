@@ -20,7 +20,7 @@ const linden = Command.make("linden", { url, depth }, ({ url, depth }) => {
 
 		yield* Effect.log(resp);
 
-		const links = yield* web.extractLinks(resp);
+		const links = yield* web.extractLinks(resp, url);
 		yield* Effect.log(links);
 
 		return yield* Effect.succeedNone;

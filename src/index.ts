@@ -1,17 +1,7 @@
 import { Args, Command, Options } from "@effect/cli";
 import { FetchHttpClient } from "@effect/platform";
 import { BunContext, BunRuntime } from "@effect/platform-bun";
-import {
-	Config,
-	Data,
-	Effect,
-	Layer,
-	Logger,
-	LogLevel,
-	MutableHashSet,
-	Queue,
-} from "effect";
-import normalizeUrl from "normalize-url";
+import { Data, Effect, Layer, MutableHashSet, Queue } from "effect";
 import { Web } from "./web";
 
 const url = Args.text({

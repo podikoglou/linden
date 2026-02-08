@@ -1,7 +1,7 @@
 import { HttpClient } from "@effect/platform";
 import type { HttpClientError } from "@effect/platform/HttpClientError";
 import * as cheerio from "cheerio";
-import { Context, Data, Effect, Equal, Layer } from "effect";
+import { Context, Data, Effect, Layer } from "effect";
 import normalizeUrl from "normalize-url";
 
 export interface FetchedPage {

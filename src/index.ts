@@ -86,7 +86,12 @@ const linden = Command.make(
 			const pipelineLoop = Effect.fn("pipelineLoop")(function* () {
 				while (yield* shouldContinue) {
 					yield* pipeline().pipe(
-						Effect.catchAll((err) => Effect.logError(err)),
+						// these errors are only there for semantic purposes
+						// in reality they're just ignored. we don't need to handle them,
+						// and logging them only pollutes the output
+						Effect.catchTag("AlreadyVisitedError", (_) => Effect.succeedNone),
+						Effect.catchTag("ValidationError", (_) => Effect.succeedNone),
+						Effect.catchTag("RequestError", (_) => Effect.succeedNone),
 					);
 				}
 			});

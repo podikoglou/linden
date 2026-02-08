@@ -33,7 +33,7 @@ export class Web extends Context.Tag("@linden/web")<
 				const response = yield* http.get(url);
 				const text = yield* response.text;
 
-				yield* Effect.logDebug(`Fetched page from ${url}`);
+				yield* Effect.logInfo(`Fetched page from ${url}`);
 
 				return yield* Effect.succeed({ url, content: text });
 			});

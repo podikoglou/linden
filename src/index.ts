@@ -60,17 +60,15 @@ const linden = Command.make(
 					return yield* Effect.succeedNone;
 				}
 
-				const normalizedUrl = normalizeUrl(item.url.href);
+				const normalized = yield* web.normalizeURL(item.url);
 
-				if (MutableHashSet.has(visited, normalizedUrl)) {
+				if (MutableHashSet.has(visited, normalized)) {
 					return yield* Effect.fail(
-						new AlreadyVisitedError({ url: normalizedUrl }),
+						new AlreadyVisitedError({ url: normalized }),
 					);
 				}
 
-				MutableHashSet.add(visited, normalizedUrl);
-
-				yield* web.validateURL(item.url);
+				MutableHashSet.add(visited, normalized);
 
 				const fetchedPage = yield* web.fetchPage(item.url);
 				const urls = yield* web.extractURLs(fetchedPage);

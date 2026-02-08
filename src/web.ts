@@ -1,7 +1,8 @@
 import { HttpClient } from "@effect/platform";
 import type { HttpClientError } from "@effect/platform/HttpClientError";
 import * as cheerio from "cheerio";
-import { Context, Data, Effect, Layer } from "effect";
+import { Context, Data, Effect, Equal, Layer } from "effect";
+import normalizeUrl from "normalize-url";
 
 export interface FetchedPage {
 	content: string;
@@ -21,7 +22,7 @@ export class Web extends Context.Tag("@linden/web")<
 
 		readonly extractURLs: (page: FetchedPage) => Effect.Effect<URL[]>;
 
-		readonly validateURL: (url: URL) => Effect.Effect<void, ValidationError>;
+		readonly normalizeURL: (url: URL) => Effect.Effect<string, ValidationError>;
 	}
 >() {
 	static readonly layer = Layer.effect(
@@ -55,16 +56,25 @@ export class Web extends Context.Tag("@linden/web")<
 				return yield* Effect.succeed(links);
 			});
 
-			const validateURL = Effect.fn("Web.validateURL")(function* (url: URL) {
-				return yield* url.protocol === "http:" || url.protocol === "https:"
-					? Effect.void
-					: Effect.fail(new ValidationError({ url }));
+			const normalizeURL = Effect.fn("Web.normalizeURL")(function* (url: URL) {
+				// ensure it's http or https
+				if (!(url.protocol === "http:" || url.protocol === "https:")) {
+					return yield* new ValidationError({ url });
+				}
+
+				// clear the hash which is irrelevant to what response we get
+				url.hash = "";
+
+				// normalize using the normalize-url library
+				const normalized = normalizeUrl(url.href);
+
+				return yield* Effect.succeed(normalized);
 			});
 
 			return Web.of({
 				fetchPage,
 				extractURLs,
-				validateURL,
+				normalizeURL,
 			});
 		}),
 	);

@@ -1,7 +1,8 @@
-import { HttpClient } from "@effect/platform";
+import { HttpClient, Url } from "@effect/platform";
 import type { HttpClientError } from "@effect/platform/HttpClientError";
 import * as cheerio from "cheerio";
 import { Context, Data, Effect, Layer } from "effect";
+import type { IllegalArgumentException } from "effect/Cause";
 import normalizeUrl from "normalize-url";
 
 export interface FetchedPage {
@@ -9,7 +10,9 @@ export interface FetchedPage {
 	url: URL;
 }
 
-class ValidationError extends Data.TaggedError("ValidationError")<{
+class URLProtocolValidationError extends Data.TaggedError(
+	"URLProtocolValidationError",
+)<{
 	readonly url: URL;
 }> {}
 
@@ -22,7 +25,16 @@ export class Web extends Context.Tag("@linden/web")<
 
 		readonly extractURLs: (page: FetchedPage) => Effect.Effect<URL[]>;
 
-		readonly normalizeURL: (url: URL) => Effect.Effect<string, ValidationError>;
+		readonly validateURLProtocol: (
+			url: URL,
+		) => Effect.Effect<void, URLProtocolValidationError>;
+
+		readonly normalizeURL: (
+			url: URL,
+		) => Effect.Effect<
+			URL,
+			URLProtocolValidationError | IllegalArgumentException
+		>;
 	}
 >() {
 	static readonly layer = Layer.effect(
@@ -56,24 +68,27 @@ export class Web extends Context.Tag("@linden/web")<
 				return yield* Effect.succeed(links);
 			});
 
-			const normalizeURL = Effect.fn("Web.normalizeURL")(function* (url: URL) {
-				// ensure it's http or https
-				if (!(url.protocol === "http:" || url.protocol === "https:")) {
-					return yield* new ValidationError({ url });
-				}
+			const validateURLProtocol = (url: URL) =>
+				url.protocol === "http:" || url.protocol === "https:"
+					? Effect.succeedNone
+					: Effect.fail(new URLProtocolValidationError({ url }));
 
-				// clear the hash which is irrelevant to what response we get
-				url.hash = "";
+			const normalizeURL = Effect.fn("Web.normalizeURL")(function* (url: URL) {
+				yield* validateURLProtocol(url);
 
 				// normalize using the normalize-url library
 				const normalized = normalizeUrl(url.href);
 
-				return yield* Effect.succeed(normalized);
+				const normalizedParsed = yield* Url.fromString(normalized);
+				const normalizedHashless = Url.setHash(normalizedParsed, "");
+
+				return yield* Effect.succeed(normalizedHashless);
 			});
 
 			return Web.of({
 				fetchPage,
 				extractURLs,
+				validateURLProtocol,
 				normalizeURL,
 			});
 		}),

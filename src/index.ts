@@ -35,7 +35,7 @@ const linden = Command.make(
 				Effect.andThen((urls) =>
 					urls.map((url) => new QueueEntry({ url, depth: 0 })),
 				),
-				Effect.andThen((items) => scrapeQueue.enqueueAll(items)),
+				Effect.andThen((items) => scrapeQueue.enqueueAll(items, depth)),
 			);
 
 			const pipeline = Effect.fn("pipeline")(function* () {
@@ -47,7 +47,7 @@ const linden = Command.make(
 					(url) => new QueueEntry({ url, depth: entry.depth + 1 }),
 				);
 
-				yield* scrapeQueue.enqueueAll(items);
+				yield* scrapeQueue.enqueueAll(items, depth);
 			});
 
 			const shouldContinue = scrapeQueue.isEmpty.pipe(

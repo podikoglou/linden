@@ -24,14 +24,19 @@ export class ScrapeQueue extends Effect.Service<ScrapeQueue>()(
 	"linden/scrape-queue",
 	{
 		effect: Effect.gen(function* () {
-			const maxDepth = 3; // TODO: actually grab by configuration
-
 			const web = yield* Web;
 
 			const queue = yield* Queue.unbounded<QueueEntry>();
 			const visited = MutableHashSet.make();
 
-			const enqueue = Effect.fn("enqueue")(function* (entry: QueueEntry) {
+			const enqueue = Effect.fn("enqueue")(function* (
+				entry: QueueEntry,
+
+				// NOTE: this sucks. i should use Config or a config service.
+				// but this is provided dynamically through CLI args, and I
+				// don't know how to do that
+				maxDepth: number,
+			) {
 				// ensure this doesn't go over the max depth
 				if (entry.depth >= maxDepth) {
 					return yield* new MaxDepthError({ entry });
@@ -65,8 +70,10 @@ export class ScrapeQueue extends Effect.Service<ScrapeQueue>()(
 				}
 			});
 
-			const enqueueAll = (entries: QueueEntry[]) =>
-				Effect.forEach(entries, (entry) => enqueue(entry).pipe(Effect.ignore));
+			const enqueueAll = (entries: QueueEntry[], maxDepth: number) =>
+				Effect.forEach(entries, (entry) =>
+					enqueue(entry, maxDepth).pipe(Effect.ignore),
+				);
 
 			const next = Effect.gen(function* () {
 				if (yield* isEmpty) {

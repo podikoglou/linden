@@ -21,30 +21,21 @@ export class MaxDepthError extends Data.TaggedError("MaxDepthError")<{
 
 export class EmptyQueueError extends Data.TaggedError("EmptyQueueError")<{}> {}
 
+type EnqueueError =
+	| AlreadyEnqueuedError
+	| AlreadyVisitedError
+	| MaxDepthError
+	| URLProtocolValidationError
+	| IllegalArgumentException;
+
 export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
 	ScrapeQueue,
 	{
-		readonly enqueue: (
-			entry: QueueEntry,
-		) => Effect.Effect<
-			void,
-			| AlreadyEnqueuedError
-			| AlreadyVisitedError
-			| MaxDepthError
-			| URLProtocolValidationError
-			| IllegalArgumentException
-		>;
+		readonly enqueue: (entry: QueueEntry) => Effect.Effect<void, EnqueueError>;
 
 		readonly enqueueAll: (
 			entries: QueueEntry[],
-		) => Effect.Effect<
-			void,
-			| AlreadyEnqueuedError
-			| AlreadyVisitedError
-			| MaxDepthError
-			| URLProtocolValidationError
-			| IllegalArgumentException
-		>;
+		) => Effect.Effect<void, EnqueueError>;
 
 		readonly next: Effect.Effect<QueueEntry, EmptyQueueError>;
 

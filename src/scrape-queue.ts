@@ -108,9 +108,8 @@ export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
 				return entry;
 			});
 
-			const hasVisited = Effect.fn("hasVisited")(function* (url: URL) {
-				return yield* Effect.succeed(MutableHashSet.has(visited, url));
-			});
+			const hasVisited = (url: URL) =>
+				Effect.succeed(MutableHashSet.has(visited, url));
 
 			const markVisited = Effect.fn("markVisited")(function* (url: URL) {
 				return yield* Effect.succeed(MutableHashSet.add(visited, url));

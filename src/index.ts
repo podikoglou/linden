@@ -60,11 +60,8 @@ const linden = Command.make(
 						// most these errors are only there for semantic purposes
 						// in reality they're just ignored. we don't need to handle them,
 						// and logging them only pollutes the output
-						Effect.catchTag("AlreadyEnqueuedError", (_) => Effect.succeedNone),
-						Effect.catchTag("EmptyQueueError", (_) => Effect.succeedNone),
-						Effect.catchTag("RequestError", (_) => Effect.succeedNone),
 						Effect.catchTag("ResponseError", (err) => Effect.logError(err)),
-						Effect.catchTag("MaxDepthError", (_) => Effect.succeedNone),
+						Effect.catchAll((_) => Effect.succeedNone),
 					);
 				}
 			});

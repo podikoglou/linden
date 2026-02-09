@@ -10,7 +10,7 @@ export interface FetchedPage {
 	url: URL;
 }
 
-class URLProtocolValidationError extends Data.TaggedError(
+export class URLProtocolValidationError extends Data.TaggedError(
 	"URLProtocolValidationError",
 )<{
 	readonly url: URL;

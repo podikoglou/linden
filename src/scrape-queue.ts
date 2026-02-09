@@ -1,4 +1,6 @@
 import { Context, Data, Effect, Layer, MutableHashSet, Queue } from "effect";
+import type { IllegalArgumentException } from "effect/Cause";
+import { type URLProtocolValidationError, Web } from "./web";
 
 export class QueueEntry extends Data.TaggedClass("QueueEntry")<{
 	url: URL;
@@ -24,11 +26,25 @@ export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
 	{
 		readonly enqueue: (
 			entry: QueueEntry,
-		) => Effect.Effect<void, AlreadyEnqueuedError | MaxDepthError>;
+		) => Effect.Effect<
+			void,
+			| AlreadyEnqueuedError
+			| AlreadyVisitedError
+			| MaxDepthError
+			| URLProtocolValidationError
+			| IllegalArgumentException
+		>;
 
 		readonly enqueueAll: (
 			entries: QueueEntry[],
-		) => Effect.Effect<void, AlreadyEnqueuedError | MaxDepthError>;
+		) => Effect.Effect<
+			void,
+			| AlreadyEnqueuedError
+			| AlreadyVisitedError
+			| MaxDepthError
+			| URLProtocolValidationError
+			| IllegalArgumentException
+		>;
 
 		readonly next: Effect.Effect<QueueEntry, EmptyQueueError>;
 

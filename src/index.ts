@@ -79,8 +79,8 @@ const linden = Command.make(
 
 const cli = Command.run(linden, { name: "linden", version: "1.0.0" });
 
-const AppLayer = Web.layer.pipe(
-	Layer.provideMerge(ScrapeQueue.layer),
+const AppLayer = ScrapeQueue.layer.pipe(
+	Layer.provideMerge(Web.layer),
 	Layer.provideMerge(BunContext.layer),
 	Layer.provideMerge(FetchHttpClient.layer),
 );

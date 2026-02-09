@@ -1,6 +1,5 @@
-import { Context, Data, Effect, Layer, MutableHashSet, Queue } from "effect";
-import type { IllegalArgumentException } from "effect/Cause";
-import { type URLProtocolValidationError, Web } from "./web";
+import { Data, Effect, MutableHashSet, Queue } from "effect";
+import { Web } from "./web";
 
 export class QueueEntry extends Data.TaggedClass("QueueEntry")<{
 	url: URL;
@@ -21,33 +20,10 @@ export class MaxDepthError extends Data.TaggedError("MaxDepthError")<{
 
 export class EmptyQueueError extends Data.TaggedError("EmptyQueueError")<{}> {}
 
-type EnqueueError =
-	| AlreadyEnqueuedError
-	| AlreadyVisitedError
-	| MaxDepthError
-	| URLProtocolValidationError
-	| IllegalArgumentException;
-
-export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
-	ScrapeQueue,
+export class ScrapeQueue extends Effect.Service<ScrapeQueue>()(
+	"linden/scrape-queue",
 	{
-		readonly enqueue: (entry: QueueEntry) => Effect.Effect<void, EnqueueError>;
-
-		readonly enqueueAll: (
-			entries: QueueEntry[],
-		) => Effect.Effect<void, EnqueueError>;
-
-		readonly next: Effect.Effect<QueueEntry, EmptyQueueError>;
-
-		readonly hasVisited: (url: URL) => Effect.Effect<boolean>;
-		readonly markVisited: (url: URL) => Effect.Effect<void>;
-
-		readonly isEmpty: Effect.Effect<boolean>;
-	}
->() {
-	static readonly layer = Layer.effect(
-		ScrapeQueue,
-		Effect.gen(function* () {
+		effect: Effect.gen(function* () {
 			const maxDepth = 3; // TODO: actually grab by configuration
 
 			const web = yield* Web;
@@ -102,6 +78,10 @@ export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
 
 				// TODO: maybe check if it's already been visited and recurse if so?
 
+				if (yield* hasVisited(entry.url)) {
+					yield* Effect.logWarning(`visited before: ${entry.url}`);
+				}
+
 				// mark as visited
 				yield* markVisited(entry.url);
 
@@ -117,14 +97,15 @@ export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
 
 			const isEmpty = queue.isEmpty;
 
-			return ScrapeQueue.of({
+			return {
 				enqueue,
 				enqueueAll,
 				next,
 				hasVisited,
 				markVisited,
 				isEmpty,
-			});
+			} as const;
 		}),
-	);
-}
+		dependencies: [Web.Default],
+	},
+) {}

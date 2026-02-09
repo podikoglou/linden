@@ -59,6 +59,8 @@ export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
 		Effect.gen(function* () {
 			const maxDepth = 3; // TODO: actually grab by configuration
 
+			const web = yield* Web;
+
 			const queue = yield* Queue.unbounded<QueueEntry>();
 			const visited = MutableHashSet.make();
 
@@ -68,12 +70,19 @@ export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
 					return yield* new MaxDepthError({ entry });
 				}
 
-				// TODO: normalize URL
+				// normalize URL and create new entry with the updated URL
+				const url = yield* web.normalizeURL(entry.url);
+				const newEntry = new QueueEntry({ ...entry, url });
+
+				// just for debugging
+				if (entry.url.href !== newEntry.url.href) {
+					yield* Effect.logDebug(`${entry.url.href} -> ${newEntry.url.href}`);
+				}
 
 				// ensure it hasn't been visited before
-				// if (yield* hasVisited(entry.url)) {
-				// 	return yield* new AlreadyVisitedError({ entry });
-				// }
+				if (yield* hasVisited(newEntry.url)) {
+					return yield* new AlreadyVisitedError({ url: newEntry.url });
+				}
 
 				// BUG: this fails only if the specific entry (which means, with this
 				// specific depth) is in the queue. if this url is added to the queue
@@ -84,13 +93,13 @@ export class ScrapeQueue extends Context.Tag("@linden/scrape-queue")<
 
 				// try to offer
 				// returns false if it's already in the queue
-				if (!(yield* queue.offer(entry))) {
-					return yield* new AlreadyEnqueuedError({ entry });
+				if (!(yield* queue.offer(newEntry))) {
+					return yield* new AlreadyEnqueuedError({ entry: newEntry });
 				}
 			});
 
 			const enqueueAll = (entries: QueueEntry[]) =>
-				Effect.forEach(entries, (entry) => enqueue(entry));
+				Effect.forEach(entries, (entry) => enqueue(entry).pipe(Effect.ignore));
 
 			const next = Effect.gen(function* () {
 				if (yield* isEmpty) {
